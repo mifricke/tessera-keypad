@@ -1,0 +1,21 @@
+# What tools/preview.py shows (the plugins repository's docs/PREVIEW.md). Never put a real code here.
+tiles:
+  - tile: keypad
+    name: Front door
+    entity: lock.front_door
+    options: { code: "1234" }
+  - tile: keypad
+    name: Garage
+    entity: cover.garage
+    options: { code: "2580" }
+    sizes: [1x1]
+  - tile: keypad
+    name: No code yet
+    entity: script.open_gate
+    sizes: [2x1]
+states:
+  lock.front_door: { state: locked, attributes: { friendly_name: Front door } }
+  cover.garage: { state: closed, attributes: { friendly_name: Garage } }
+  script.open_gate: { state: "off", attributes: { friendly_name: Open gate } }
+cards:
+  - { card: keys, entity: lock.front_door }

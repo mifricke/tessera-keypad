@@ -1,0 +1,35 @@
+{
+  "_meta": { "name": "Deutsch" },
+  "screen": {
+    "choose": "Entität wählen",
+    "no_code": "Code festlegen",
+    "enter": "Code eingeben",
+    "tap": "Tippen, um den Code einzugeben",
+    "wrong": "Falscher Code",
+    "right": "Erledigt",
+    "failed": "Nicht gesendet",
+    "blocked": "Erneut in {n} s",
+    "locked": "Verriegelt",
+    "unlocked": "Entriegelt",
+    "open": "Offen",
+    "closed": "Geschlossen",
+    "on": "An",
+    "off": "Aus",
+    "unavailable": "Nicht verfügbar"
+  },
+  "app": {
+    "name": "Codeschloss",
+    "summary": "Ein Tastenfeld auf dem Display: Der richtige Code entriegelt ein Schloss oder startet ein Skript, eine Szene oder einen Knopf.",
+    "tile_name": "Codeschloss",
+    "tile_example": "Code eingeben zum Entriegeln",
+    "card_name": "Tastenfeld",
+    "code": "Code",
+    "code_hint": "4 bis 8 Ziffern. Das Display prüft ihn, er liegt also auf dem Display: als Komfort gedacht, nicht als einziges Schloss.",
+    "pass_code": "Code an das Schloss weitergeben",
+    "pass_code_hint": "Für ein Schloss mit eigenem Code in Home Assistant: Der eingetippte Code geht mit dem Entriegeln mit, Home Assistant prüft ihn. Code leer lassen, damit Home Assistant allein entscheidet.",
+    "attempts": "Falsche Versuche",
+    "attempts_hint": "Nach so vielen falschen Codes in Folge wartet das Tastenfeld, bevor es wieder einen annimmt.",
+    "wait": "Wartezeit nach falschen Versuchen",
+    "wait_hint": "Wie lange das Tastenfeld wartet, in Sekunden."
+  }
+}

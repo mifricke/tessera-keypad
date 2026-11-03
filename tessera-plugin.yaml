@@ -1,0 +1,39 @@
+# Code lock: a keypad on the screen. When the right code is typed, the screen runs an action in Home Assistant on the
+# tile's entity: it unlocks a lock, runs a script or a scene, presses a button. Every field is explained in the plugins
+# repository's docs/MANIFEST.md.
+id: code_lock
+version: 0.1.0
+api: "0.12"
+icon: lock
+maintainer: mifricke
+license: MIT
+stage: beta
+topics: [home]
+requires:
+  esphome: 2026.6.2
+boards: any
+flash_kb: 12
+
+permissions:
+  # The one action of the tile's entity that the right code runs, by its domain.
+  home_assistant_actions: [lock.unlock, script.turn_on, scene.turn_on, button.press, input_button.press, switch.turn_on,
+                           automation.trigger, cover.open_cover]
+
+tiles:
+  - id: keypad
+    name: tile_name
+    icon: lock
+    sizes: { min: 1x1, max: 2x2 }
+    memory: 500
+    # What the right code acts on.
+    domains: [lock, script, scene, button, input_button, switch, automation, cover]
+    example: tile_example
+    preview: { title: "{name}", value: "{state}" }
+    options:
+      - { id: code, kind: text, label: code, hint: code_hint }
+      - { id: pass_code, kind: toggle, label: pass_code, hint: pass_code_hint, default: false }
+      - { id: attempts, kind: number, label: attempts, hint: attempts_hint, min: 1, max: 10, default: 3 }
+      - { id: wait, kind: number, label: wait, hint: wait_hint, min: 5, max: 600, step: 5, unit: s, default: 30 }
+
+cards:
+  - { id: keys, name: card_name }
