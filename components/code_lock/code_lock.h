@@ -7,9 +7,8 @@ namespace esphome::code_lock {
 // What a tile hands the keypad it opens: the code, the entity and how to act on it. The card is made after the tile's
 // tap and reads it from the plugin, as it has no options of its own.
 struct Lock {
-  char code[17] = "";       // the right code, "" when Home Assistant checks it alone (pass_code)
+  char code[17] = "";       // the right code
   char entity[96] = "";     // what the right code acts on
-  bool pass_code = false;   // send the typed code with lock.unlock
   int attempts = 3;         // wrong codes in a row before the keypad waits
   int wait_s = 30;          // how long it waits
 };

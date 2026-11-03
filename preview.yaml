@@ -2,16 +2,14 @@
 tiles:
   - tile: keypad
     name: Front door
-    entity: lock.front_door
-    options: { code: "1234" }
+    options: { target: lock.front_door, code: "1234" }
   - tile: keypad
     name: Garage
-    entity: cover.garage
-    options: { code: "2580" }
+    options: { target: cover.garage, code: "2580" }
     sizes: [1x1]
   - tile: keypad
     name: No code yet
-    entity: script.open_gate
+    options: { target: script.open_gate }
     sizes: [2x1]
 states:
   lock.front_door: { state: locked, attributes: { friendly_name: Front door } }

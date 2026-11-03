@@ -17,9 +17,9 @@ static constexpr int DOTS = 8;
 // The action the right code runs, by the entity's domain (named in the manifest's home_assistant_actions).
 static const char *service_for(const char *entity) {
   static const struct { const char *domain, *service; } MAP[] = {
-      {"lock.", "lock.unlock"},         {"script.", "script.turn_on"},        {"scene.", "scene.turn_on"},
-      {"button.", "button.press"},      {"input_button.", "input_button.press"}, {"switch.", "switch.turn_on"},
-      {"automation.", "automation.trigger"}, {"cover.", "cover.open_cover"},
+      {"lock.", "lock.unlock"},     {"cover.", "cover.open_cover"}, {"switch.", "switch.turn_on"},
+      {"input_boolean.", "input_boolean.turn_on"}, {"light.", "light.turn_on"}, {"script.", "script.turn_on"},
+      {"scene.", "scene.turn_on"},   {"button.", "button.press"},
   };
   for (const auto &m : MAP)
     if (std::strncmp(entity, m.domain, std::strlen(m.domain)) == 0) return m.service;
@@ -55,9 +55,8 @@ class KeypadTile : public tessera::Tile {
     width_ = c.width;
     height_ = c.height;
     tile_ = c.tile;
-    std::strncpy(lock_.entity, c.entity ? c.entity : "", sizeof(lock_.entity) - 1);
+    std::strncpy(lock_.entity, c.options["target"] | "", sizeof(lock_.entity) - 1);
     std::strncpy(lock_.code, c.options["code"] | "", sizeof(lock_.code) - 1);
-    lock_.pass_code = c.options["pass_code"] | false;
     lock_.attempts = std::max(1, c.options["attempts"] | 3);
     lock_.wait_s = std::max(1, c.options["wait"] | 30);
     std::strncpy(name_, c.name ? c.name : "", sizeof(name_) - 1);
@@ -73,8 +72,10 @@ class KeypadTile : public tessera::Tile {
   }
 
   void on_state(JsonObjectConst data) override {
-    if (!data["name"].isNull() && !name_[0]) std::strncpy(name_, data["name"] | "", sizeof(name_) - 1);
-    std::strncpy(state_, data["state"] | "", sizeof(state_) - 1);
+    // The chosen entity comes under entities.target (an option of kind entity), again at every change.
+    JsonObjectConst target = data["entities"]["target"];
+    if (!target["name"].isNull() && !name_[0]) std::strncpy(name_, target["name"] | "", sizeof(name_) - 1);
+    std::strncpy(state_, target["state"] | "", sizeof(state_) - 1);
     paint();
   }
 
@@ -91,23 +92,21 @@ class KeypadTile : public tessera::Tile {
   }
 
  private:
-  // A code to check, or a lock that checks it itself; and an entity the plugin knows how to act on.
-  bool ready() const {
-    return lock_.entity[0] && service_for(lock_.entity) && (lock_.code[0] || lock_.pass_code);
-  }
+  // A code to check, and an entity the plugin knows how to act on.
+  bool ready() const { return lock_.entity[0] && service_for(lock_.entity) && lock_.code[0]; }
 
   // What the entity is now, in the screen's words, or what to do.
   std::string line() const {
     if (!lock_.entity[0] || !service_for(lock_.entity)) return plugin_->text("choose");
-    if (!lock_.code[0] && !lock_.pass_code) return plugin_->text("no_code");
+    if (!lock_.code[0]) return plugin_->text("no_code");
     const char *s = state_;
     if (!std::strcmp(s, "unavailable")) return plugin_->text("unavailable");
     if (!std::strcmp(s, "locked")) return plugin_->text("locked");
     if (!std::strcmp(s, "unlocked")) return plugin_->text("unlocked");
     if (!std::strcmp(s, "open")) return plugin_->text("open");
     if (!std::strcmp(s, "closed")) return plugin_->text("closed");
-    if (!std::strncmp(lock_.entity, "switch.", 7) && !std::strcmp(s, "on")) return plugin_->text("on");
-    if (!std::strncmp(lock_.entity, "switch.", 7) && !std::strcmp(s, "off")) return plugin_->text("off");
+    if (!std::strcmp(s, "on")) return plugin_->text("on");
+    if (!std::strcmp(s, "off") && std::strncmp(lock_.entity, "script.", 7)) return plugin_->text("off");
     return plugin_->text("tap");
   }
 
@@ -234,7 +233,7 @@ class KeysCard : public tessera::Card {
     if (key == 9) {
       clear();
     } else if (key == 11) {
-      if (typed_len_ || (lock_.pass_code && !lock_.code[0])) submit();
+      if (typed_len_) submit();
     } else if (typed_len_ < MAX_DIGITS) {
       typed_[typed_len_++] = key == 10 ? '0' : static_cast<char>('1' + key);
       typed_[typed_len_] = 0;
@@ -278,7 +277,8 @@ class KeysCard : public tessera::Card {
 
   void submit() {
     auto &t = plugin_->tries(lock_.entity);
-    if (lock_.code[0] && !matches()) {
+    if (!lock_.code[0]) return;
+    if (!matches()) {
       clear();
       said_ = Said::WRONG;
       if (++t.wrong >= lock_.attempts) {
@@ -291,15 +291,7 @@ class KeysCard : public tessera::Card {
     t.wrong = 0;
     const char *service = service_for(lock_.entity);
     bool sent = false;
-    if (service) {
-      if (lock_.pass_code && !std::strcmp(service, "lock.unlock") && typed_len_) {
-        JsonDocument d;
-        d["code"] = typed_;
-        sent = tessera::action(service, lock_.entity, d);
-      } else {
-        sent = tessera::action(service, lock_.entity);
-      }
-    }
+    if (service) sent = tessera::action(service, lock_.entity);
     clear();
     said_ = sent ? Said::RIGHT : Said::FAILED;
     if (sent) {

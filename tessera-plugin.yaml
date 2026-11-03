@@ -2,8 +2,8 @@
 # tile's entity: it unlocks a lock, runs a script or a scene, presses a button. Every field is explained in the plugins
 # repository's docs/MANIFEST.md.
 id: code_lock
-version: 0.1.0
-api: "0.12"
+version: 0.2.0
+api: "0.15"
 icon: lock
 maintainer: mifricke
 license: MIT
@@ -15,9 +15,9 @@ boards: any
 flash_kb: 12
 
 permissions:
-  # The one action of the tile's entity that the right code runs, by its domain.
-  home_assistant_actions: [lock.unlock, script.turn_on, scene.turn_on, button.press, input_button.press, switch.turn_on,
-                           automation.trigger, cover.open_cover]
+  # The one action of the chosen entity that the right code runs, by its domain.
+  home_assistant_actions: [lock.unlock, cover.open_cover, switch.turn_on, input_boolean.turn_on, light.turn_on,
+                           script.turn_on, scene.turn_on, button.press]
 
 tiles:
   - id: keypad
@@ -25,13 +25,12 @@ tiles:
     icon: lock
     sizes: { min: 1x1, max: 2x2 }
     memory: 500
-    # What the right code acts on.
-    domains: [lock, script, scene, button, input_button, switch, automation, cover]
     example: tile_example
-    preview: { title: "{name}", value: "{state}" }
     options:
+      # What the right code acts on: only entities it can switch, in a list the editor searches.
+      - { id: target, kind: entity, domains: [lock, cover, switch, input_boolean, light, script, scene, button],
+          label: target, hint: target_hint }
       - { id: code, kind: text, label: code, hint: code_hint }
-      - { id: pass_code, kind: toggle, label: pass_code, hint: pass_code_hint, default: false }
       - { id: attempts, kind: number, label: attempts, hint: attempts_hint, min: 1, max: 10, default: 3 }
       - { id: wait, kind: number, label: wait, hint: wait_hint, min: 5, max: 600, step: 5, unit: s, default: 30 }
 
