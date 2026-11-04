@@ -2,7 +2,7 @@
 # tile's entity: it unlocks a lock, runs a script or a scene, presses a button. Every field is explained in the plugins
 # repository's docs/MANIFEST.md.
 id: code_lock
-version: 0.3.2
+version: 0.4.0
 api: "0.15"
 icon: lock
 maintainer: mifricke
@@ -31,6 +31,8 @@ tiles:
       - { id: target, kind: entity, domains: [lock, cover, switch, input_boolean, light, script, scene, button],
           label: target, hint: target_hint }
       - { id: code, kind: text, label: code, hint: code_hint }
+      # Or the code from a helper in Home Assistant: it wins over the one above when chosen.
+      - { id: code_entity, kind: entity, domains: [input_text, text], label: code_entity, hint: code_entity_hint }
       - { id: attempts, kind: number, label: attempts, hint: attempts_hint, min: 1, max: 10, default: 3 }
       - { id: wait, kind: number, label: wait, hint: wait_hint, min: 5, max: 600, step: 5, unit: s, default: 30 }
 

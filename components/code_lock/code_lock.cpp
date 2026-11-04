@@ -40,6 +40,28 @@ static void option_text(JsonVariantConst value, char *out, size_t size) {
   out[n] = 0;
 }
 
+// The code a helper in Home Assistant holds (an input_text or a text entity): its state when that is 1 to 16 digits,
+// spaces around them left out; nothing while it is unavailable, unknown or anything else, so the keypad stays shut.
+static void code_from_state(const char *state, char *out, size_t size) {
+  out[0] = 0;
+  size_t n = 0;
+  for (const char *p = state ? state : ""; *p; ++p) {
+    if (*p == ' ') continue;
+    if (*p < '0' || *p > '9' || n + 1 >= size) {
+      out[0] = 0;
+      return;
+    }
+    out[n++] = *p;
+  }
+  out[n] = 0;
+}
+
+// The code of a tile's data when it comes from a helper: the state of the entity chosen as `code_entity`.
+static void code_from_data(JsonObjectConst data, char *out, size_t size) {
+  JsonVariantConst helper = data["entities"]["code_entity"];
+  code_from_state(helper.isNull() ? "" : (helper["state"] | ""), out, size);
+}
+
 CodeLock::Tries &CodeLock::tries(const char *entity) {
   for (auto &t : tries_)
     if (std::strcmp(t.entity, entity) == 0) return t;
@@ -60,7 +82,10 @@ class KeypadTile : public tessera::Tile {
     height_ = c.height;
     tile_ = c.tile;
     std::strncpy(lock_.entity, c.options["target"] | "", sizeof(lock_.entity) - 1);
-    option_text(c.options["code"], lock_.code, sizeof(lock_.code));
+    // The code: from a helper in Home Assistant when one is chosen (it comes with the tile's data, on_state), else
+    // the one typed into the tile's options.
+    lock_.from_entity = (c.options["code_entity"] | "")[0] != 0;
+    if (!lock_.from_entity) option_text(c.options["code"], lock_.code, sizeof(lock_.code));
     lock_.attempts = std::max(1, c.options["attempts"] | 3);
     lock_.wait_s = std::max(1, c.options["wait"] | 30);
     std::strncpy(name_, c.name ? c.name : "", sizeof(name_) - 1);
@@ -80,6 +105,8 @@ class KeypadTile : public tessera::Tile {
     JsonObjectConst target = data["entities"]["target"];
     if (!target["name"].isNull() && !name_[0]) std::strncpy(name_, target["name"] | "", sizeof(name_) - 1);
     std::strncpy(state_, target["state"] | "", sizeof(state_) - 1);
+    // A helper's code follows Home Assistant: a new code there reaches the tile within seconds, without a build.
+    if (lock_.from_entity) code_from_data(data, lock_.code, sizeof(lock_.code));
     paint();
   }
 
@@ -102,7 +129,7 @@ class KeypadTile : public tessera::Tile {
   // What the entity is now, in the screen's words, or what to do.
   std::string line() const {
     if (!lock_.entity[0] || !service_for(lock_.entity)) return plugin_->text("choose");
-    if (!lock_.code[0]) return plugin_->text("no_code");
+    if (!lock_.code[0]) return plugin_->text(lock_.from_entity ? "no_helper_code" : "no_code");
     const char *s = state_;
     if (!std::strcmp(s, "unavailable")) return plugin_->text("unavailable");
     if (!std::strcmp(s, "locked")) return plugin_->text("locked");
@@ -235,6 +262,11 @@ class KeysCard : public tessera::Card {
     paint();
   }
 
+  // The tile's data again: a helper's new code counts at once, also while the keypad is open.
+  void on_state(JsonObjectConst data) override {
+    if (lock_.from_entity && !data["entities"].isNull()) code_from_data(data, lock_.code, sizeof(lock_.code));
+  }
+
   void on_theme() override {
     for (int i = 0; i < 12; ++i) {
       ui::set_fill(keys_[i], Tone::NORMAL, i == OK ? theme::ACCENT : theme::CARD);
@@ -274,7 +306,7 @@ class KeysCard : public tessera::Card {
   }
 
  private:
-  enum class Said : uint8_t { NOTHING, WRONG, SENT, FAILED };
+  enum class Said : uint8_t { NOTHING, WRONG, SENT, FAILED, NO_CODE };
   static constexpr int CLEAR = 9, ZERO = 10, OK = 11;
 
   void clear() {
@@ -309,7 +341,12 @@ class KeysCard : public tessera::Card {
   void submit() {
     auto &t = plugin_->tries(lock_.entity);
     said_at_ = esphome::millis();
-    if (!lock_.code[0]) return;
+    if (!lock_.code[0]) {
+      // A helper that has no code now (unavailable, or not digits): nothing opens.
+      clear();
+      said_ = Said::NO_CODE;
+      return;
+    }
     if (!matches()) {
       clear();
       said_ = Said::WRONG;
@@ -366,6 +403,9 @@ class KeysCard : public tessera::Card {
       tone = Tone::GOOD;
     } else if (said_ == Said::FAILED && now - said_at_ < 4000) {
       text = plugin_->text("failed");
+      tone = Tone::ALERT;
+    } else if (said_ == Said::NO_CODE && now - said_at_ < 4000) {
+      text = plugin_->text("no_helper_code");
       tone = Tone::ALERT;
     } else if (bad) {
       text = plugin_->text("wrong");

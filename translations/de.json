@@ -17,7 +17,8 @@
     "closed": "Geschlossen",
     "on": "An",
     "off": "Aus",
-    "unavailable": "Nicht verfügbar"
+    "unavailable": "Nicht verfügbar",
+    "no_helper_code": "Kein Code aus Home Assistant"
   },
   "app": {
     "name": "Keypad",
@@ -29,6 +30,8 @@
     "target_hint": "Was der richtige Code schaltet: ein Schloss, ein Tor, einen Schalter, ein Licht, ein Skript, eine Szene oder einen Knopf.",
     "code": "Code",
     "code_hint": "4 bis 8 Ziffern. Das Display prüft ihn, er liegt also auf dem Display: als Komfort gedacht, nicht als einziges Schloss.",
+    "code_entity": "Code aus einem Helfer",
+    "code_entity_hint": "Statt des Codes oben: eine input_text- oder text-Entität, deren Zustand der Code ist (4 bis 16 Ziffern). Ein neuer Code dort gilt nach Sekunden, ohne Neubau. Der Code steht im Klartext im Verlauf von Home Assistant: Schließe den Helfer vom Recorder aus.",
     "attempts": "Falsche Versuche",
     "attempts_hint": "Nach so vielen falschen Codes in Folge wartet das Tastenfeld, bevor es wieder einen annimmt.",
     "wait": "Wartezeit nach falschen Versuchen",

@@ -35,8 +35,28 @@ that script on the tile.
 
 - **Entity**: what the right code switches, chosen from a list you can search.
 - **Code**: the digits that open. The keypad checks the code as soon as the last digit is typed, so no OK is needed.
+- **Code from a helper**: instead of typing the code into the tile, choose a helper in Home Assistant that holds it
+  (below). When a helper is chosen, its code counts and the **Code** above is not used.
 - **Wrong tries** and **Wait after wrong tries**: after this many wrong codes in a row the keypad takes no code for a
   while and counts down.
+
+## The code from a helper in Home Assistant
+
+The code can live in Home Assistant instead of in Tessera, so it can be changed there, or by an automation, without
+opening Tessera and without building the screen again.
+
+1. In Home Assistant, open **Settings**, **Devices & services**, **Helpers**, and create a **Text** helper. Set its
+   mode to **Password** so the code is hidden in the dashboard, and its maximum length to 16.
+2. Type the code as its value: 4 to 16 digits.
+3. In Tessera, choose that helper under **Code from a helper** on the tile.
+
+A new value counts within seconds, also on a keypad that is open. While the helper is unavailable, or holds anything
+but digits, the keypad takes no code at all and says so.
+
+The Password mode only hides the code in Home Assistant's dashboard. The state itself is plain text: it is in the
+history and the logbook, and everyone who can use Home Assistant or its API can read it. Leave the helper out of the
+recorder (`recorder:` `exclude:` `entities:` in `configuration.yaml`). As with a code typed into the tile, the screen
+checks the code, so it also reaches the screen.
 
 ## Good to know
 

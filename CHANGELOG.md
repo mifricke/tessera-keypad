@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+- New option **Code from a helper**: the code can come from an input_text or text helper in Home Assistant instead of
+  the tile. A new code there counts within seconds, without building the screen again. A code typed into the tile
+  keeps working as before when no helper is chosen.
+
 ## 0.3.2
 - The plugin and its tile are called Keypad now, in every language.
 
