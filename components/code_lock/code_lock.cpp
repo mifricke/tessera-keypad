@@ -87,6 +87,7 @@ class KeypadTile : public tessera::Tile {
     lock_.from_entity = (c.options["code_entity"] | "")[0] != 0;
     if (!lock_.from_entity) option_text(c.options["code"], lock_.code, sizeof(lock_.code));
     lock_.attempts = std::max(1, c.options["attempts"] | 3);
+    lock_.auto_check = c.options["auto_check"] | true;
     lock_.wait_s = std::max(1, c.options["wait"] | 30);
     std::strncpy(name_, c.name ? c.name : "", sizeof(name_) - 1);
 
@@ -146,8 +147,16 @@ class KeypadTile : public tessera::Tile {
     ui::set_text(icon_, ui::icon(open ? ICON_LOCK_OPEN : ICON_LOCK));
     ui::set_text(name_label_, name_);
     ui::set_text(line_, line());
+    // A large tile takes larger words, the name in HEADLINE and the line in BODY_LARGE, where they fit its width and
+    // the three together take at most half its height.
+    const bool roomy = ui::line_height(Font::ICON) + ui::px(4) + ui::line_height(Font::HEADLINE) +
+                           ui::line_height(Font::BODY_LARGE) <= height_ / 2 &&
+                       ui::text_width(name_, Font::HEADLINE) <= width_ && ui::text_width(line(), Font::BODY_LARGE) <= width_;
+    const Font name_font = roomy ? Font::HEADLINE : Font::TITLE, line_font = roomy ? Font::BODY_LARGE : Font::BODY;
+    ui::set_font(name_label_, name_font);
+    ui::set_font(line_, line_font);
     // The icon, the name and the line under it, together in the middle; a low tile drops the icon, then the name.
-    const int ih = ui::line_height(Font::ICON), nh = ui::line_height(Font::TITLE), lh = ui::line_height(Font::BODY);
+    const int ih = ui::line_height(Font::ICON), nh = ui::line_height(name_font), lh = ui::line_height(line_font);
     const int gap = ui::px(4);
     const bool with_icon = ih + gap + nh + lh <= height_;
     const bool with_name = name_[0] && nh + lh <= height_;
@@ -299,8 +308,9 @@ class KeysCard : public tessera::Card {
       if (said_ == Said::WRONG) said_ = Said::NOTHING;
       typed_[typed_len_++] = key == ZERO ? '0' : static_cast<char>('1' + key);
       typed_[typed_len_] = 0;
-      // The code is checked as its last digit comes, without OK.
-      if (lock_.code[0] && typed_len_ == std::strlen(lock_.code)) submit();
+      // The code is checked as its last digit comes, without OK; with auto_check off only OK checks it, so the keypad
+      // never tells how long the code is.
+      if (lock_.auto_check && lock_.code[0] && typed_len_ == std::strlen(lock_.code)) submit();
     }
     paint();
   }

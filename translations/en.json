@@ -32,6 +32,8 @@
     "code_hint": "4 to 8 digits. The screen checks it, so it is stored on the screen: use it for convenience, not as your only lock.",
     "code_entity": "Code from a helper",
     "code_entity_hint": "Instead of the code above: an input_text or text entity whose state is the code (4 to 16 digits). A new code there counts within seconds, without a build. The code is plain text in Home Assistant's history: leave the helper out of the recorder.",
+    "auto_check": "Check the code by itself",
+    "auto_check_hint": "On: the code is checked as soon as its last digit is typed. Off: only the check key checks it, so the keypad never tells how long the code is.",
     "attempts": "Wrong tries",
     "attempts_hint": "After this many wrong codes in a row the keypad waits before it takes another.",
     "wait": "Wait after wrong tries",

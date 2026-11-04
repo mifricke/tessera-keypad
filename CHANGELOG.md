@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+- New option **Check the code by itself**, on by default as before. Turned off, only the check key checks the code,
+  so the keypad never tells how long the code is.
+- The tile takes any size the screen's grid offers, up to 9 x 9; a large tile shows its name and state in larger
+  words.
+
 ## 0.4.0
 - New option **Code from a helper**: the code can come from an input_text or text helper in Home Assistant instead of
   the tile. A new code there counts within seconds, without building the screen again. A code typed into the tile

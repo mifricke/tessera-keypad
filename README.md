@@ -34,7 +34,9 @@ that script on the tile.
 ## Options
 
 - **Entity**: what the right code switches, chosen from a list you can search.
-- **Code**: the digits that open. The keypad checks the code as soon as the last digit is typed, so no OK is needed.
+- **Code**: the digits that open.
+- **Check the code by itself**: on (the default), the keypad checks the code as soon as its last digit is typed, so
+  no check key is needed. Off, only the check key checks it: the keypad then never tells how long the code is.
 - **Code from a helper**: instead of typing the code into the tile, choose a helper in Home Assistant that holds it
   (below). When a helper is chosen, its code counts and the **Code** above is not used.
 - **Wrong tries** and **Wait after wrong tries**: after this many wrong codes in a row the keypad takes no code for a

@@ -11,6 +11,7 @@ struct Lock {
   bool from_entity = false; // the code is a helper's state in Home Assistant, not the tile's option
   char entity[96] = "";     // what the right code acts on
   int attempts = 3;         // wrong codes in a row before the keypad waits
+  bool auto_check = true;   // check the code as its last digit comes, without OK
   int wait_s = 30;          // how long it waits
 };
 
