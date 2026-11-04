@@ -28,6 +28,22 @@ static const char *service_for(const char *entity) {
   return nullptr;
 }
 
+// The action that closes the entity from what it is now, for a tap without the code (the option free_close): a lock
+// that is unlocked locks, a cover that is open closes, a light, switch or input boolean that is on goes off. Nothing
+// for an entity that is closed or off already, or that has no such state (a script, a scene, a button): those take
+// the code.
+static const char *closing_service(const char *entity, const char *state) {
+  auto is = [&](const char *domain) { return std::strncmp(entity, domain, std::strlen(domain)) == 0; };
+  auto now = [&](const char *word) { return std::strcmp(state, word) == 0; };
+  if (is("lock.")) return now("unlocked") || now("open") ? "lock.lock" : nullptr;
+  if (is("cover.")) return now("open") || now("opening") ? "cover.close_cover" : nullptr;
+  if (!now("on")) return nullptr;
+  if (is("light.")) return "light.turn_off";
+  if (is("switch.")) return "switch.turn_off";
+  if (is("input_boolean.")) return "input_boolean.turn_off";
+  return nullptr;
+}
+
 // A text option as text: the code as the inspector keeps it, also when it came as a number.
 static void option_text(JsonVariantConst value, char *out, size_t size) {
   out[0] = 0;
@@ -88,6 +104,7 @@ class KeypadTile : public tessera::Tile {
     if (!lock_.from_entity) option_text(c.options["code"], lock_.code, sizeof(lock_.code));
     lock_.attempts = std::max(1, c.options["attempts"] | 3);
     lock_.auto_check = c.options["auto_check"] | true;
+    lock_.free_close = c.options["free_close"] | false;
     lock_.wait_s = std::max(1, c.options["wait"] | 30);
     std::strncpy(name_, c.name ? c.name : "", sizeof(name_) - 1);
 
@@ -119,6 +136,14 @@ class KeypadTile : public tessera::Tile {
 
   void on_tap() override {
     if (!ready()) return;
+    // Closing needs no code where the tile says so: a tap locks, closes or switches off at once.
+    const char *closing = lock_.free_close ? closing_service(lock_.entity, state_) : nullptr;
+    if (closing) {
+      const bool sent = tessera::action(closing, lock_.entity);
+      ESP_LOGI("code_lock", "Without the code: %s on %s %s", closing, lock_.entity, sent ? "sent" : "NOT sent");
+      (void) sent;
+      return;
+    }
     plugin_->chosen = lock_;
     tessera::open_card(plugin_->plugin_id(), "keys", lock_.entity, tile_);
   }
@@ -133,6 +158,8 @@ class KeypadTile : public tessera::Tile {
     if (!lock_.code[0]) return plugin_->text(lock_.from_entity ? "no_helper_code" : "no_code");
     const char *s = state_;
     if (!std::strcmp(s, "unavailable")) return plugin_->text("unavailable");
+    // Where a tap closes without the code, the line says what the tap does.
+    if (lock_.free_close && closing_service(lock_.entity, s)) return plugin_->text(std::strncmp(lock_.entity, "lock.", 5) == 0 ? "tap_lock" : std::strncmp(lock_.entity, "cover.", 6) == 0 ? "tap_close" : "tap_off");
     if (!std::strcmp(s, "locked")) return plugin_->text("locked");
     if (!std::strcmp(s, "unlocked")) return plugin_->text("unlocked");
     if (!std::strcmp(s, "open")) return plugin_->text("open");

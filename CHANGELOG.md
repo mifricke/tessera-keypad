@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+- New option **Code only to open**, off by default. Turned on, a tap locks a lock, closes a cover or switches a light,
+  switch or input boolean off without the code, and the tile says so. Unlocking, opening and switching on still take
+  the code.
+
 ## 0.5.1
 - The tile's example line in the editor no longer speaks of unlocking only: it fits every entity the code can switch.
 

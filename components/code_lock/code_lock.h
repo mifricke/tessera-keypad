@@ -12,6 +12,7 @@ struct Lock {
   char entity[96] = "";     // what the right code acts on
   int attempts = 3;         // wrong codes in a row before the keypad waits
   bool auto_check = true;   // check the code as its last digit comes, without OK
+  bool free_close = false;  // lock, close and switch off with a tap, the code only to open and switch on
   int wait_s = 30;          // how long it waits
 };
 

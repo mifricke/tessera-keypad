@@ -35,6 +35,9 @@ that script on the tile.
 
 - **Entity**: what the right code switches, chosen from a list you can search.
 - **Code**: the digits that open.
+- **Code only to open**: off (the default), every tap opens the keypad. On, a tap locks a lock, closes a cover or
+  switches a light, switch or input boolean off at once, without the code; the tile says so ("Tap to lock").
+  Unlocking, opening and switching on still take the code, and a script, a scene or a button always does.
 - **Check the code by itself**: on (the default), the keypad checks the code as soon as its last digit is typed, so
   no check key is needed. Off, only the check key checks it: the keypad then never tells how long the code is.
 - **Code from a helper**: instead of typing the code into the tile, choose a helper in Home Assistant that holds it

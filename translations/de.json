@@ -18,7 +18,10 @@
     "on": "An",
     "off": "Aus",
     "unavailable": "Nicht verfügbar",
-    "no_helper_code": "Kein Code aus Home Assistant"
+    "no_helper_code": "Kein Code aus Home Assistant",
+    "tap_lock": "Tippen zum Verriegeln",
+    "tap_close": "Tippen zum Schließen",
+    "tap_off": "Tippen zum Ausschalten"
   },
   "app": {
     "name": "Keypad",
@@ -32,6 +35,8 @@
     "code_hint": "4 bis 8 Ziffern. Das Display prüft ihn, er liegt also auf dem Display: als Komfort gedacht, nicht als einziges Schloss.",
     "code_entity": "Code aus einem Helfer",
     "code_entity_hint": "Statt des Codes oben: eine input_text- oder text-Entität, deren Zustand der Code ist (4 bis 16 Ziffern). Ein neuer Code dort gilt nach Sekunden, ohne Neubau. Der Code steht im Klartext im Verlauf von Home Assistant: Schließe den Helfer vom Recorder aus.",
+    "free_close": "Code nur zum Öffnen",
+    "free_close_hint": "An: Ein Tipp verriegelt ein Schloss, schließt ein Tor oder schaltet ein Licht, einen Schalter oder einen Input Boolean sofort aus, ohne Code. Entriegeln, Öffnen und Einschalten brauchen weiterhin den Code. Skripte, Szenen und Knöpfe immer.",
     "auto_check": "Code automatisch prüfen",
     "auto_check_hint": "An: Der Code wird geprüft, sobald seine letzte Ziffer getippt ist. Aus: Erst der Haken prüft ihn, so verrät das Tastenfeld nie, wie lang der Code ist.",
     "attempts": "Falsche Versuche",

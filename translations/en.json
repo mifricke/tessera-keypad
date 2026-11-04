@@ -18,7 +18,10 @@
     "on": "On",
     "off": "Off",
     "unavailable": "Unavailable",
-    "no_helper_code": "No code from Home Assistant"
+    "no_helper_code": "No code from Home Assistant",
+    "tap_lock": "Tap to lock",
+    "tap_close": "Tap to close",
+    "tap_off": "Tap to switch off"
   },
   "app": {
     "name": "Keypad",
@@ -32,6 +35,8 @@
     "code_hint": "4 to 8 digits. The screen checks it, so it is stored on the screen: use it for convenience, not as your only lock.",
     "code_entity": "Code from a helper",
     "code_entity_hint": "Instead of the code above: an input_text or text entity whose state is the code (4 to 16 digits). A new code there counts within seconds, without a build. The code is plain text in Home Assistant's history: leave the helper out of the recorder.",
+    "free_close": "Code only to open",
+    "free_close_hint": "On: a tap locks a lock, closes a cover or switches a light, switch or input boolean off at once, without the code. Unlocking, opening and switching on still take the code. Scripts, scenes and buttons always take it.",
     "auto_check": "Check the code by itself",
     "auto_check_hint": "On: the code is checked as soon as its last digit is typed. Off: only the check key checks it, so the keypad never tells how long the code is.",
     "attempts": "Wrong tries",
