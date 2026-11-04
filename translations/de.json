@@ -24,7 +24,7 @@
     "name": "Keypad",
     "summary": "Ein Tastenfeld auf dem Display: Der richtige Code entriegelt ein Schloss, öffnet ein Tor oder schaltet ein Licht, ein Skript oder eine Szene.",
     "tile_name": "Keypad",
-    "tile_example": "Code eingeben zum Entriegeln",
+    "tile_example": "Code eingeben, um zu schalten",
     "card_name": "Tastenfeld",
     "target": "Entität",
     "target_hint": "Was der richtige Code schaltet: ein Schloss, ein Tor, einen Schalter, ein Licht, ein Skript, eine Szene oder einen Knopf.",

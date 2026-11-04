@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+- The tile's example line in the editor no longer speaks of unlocking only: it fits every entity the code can switch.
+
 ## 0.5.0
 - New option **Check the code by itself**, on by default as before. Turned off, only the check key checks the code,
   so the keypad never tells how long the code is.

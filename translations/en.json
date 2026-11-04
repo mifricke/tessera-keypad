@@ -24,7 +24,7 @@
     "name": "Keypad",
     "summary": "A keypad on the screen: the right code unlocks a lock, opens a cover or switches a light, a script or a scene.",
     "tile_name": "Keypad",
-    "tile_example": "Enter the code to unlock",
+    "tile_example": "Enter the code to switch it",
     "card_name": "Keypad",
     "target": "Entity",
     "target_hint": "What the right code switches: a lock, a cover, a switch, a light, a script, a scene or a button.",
