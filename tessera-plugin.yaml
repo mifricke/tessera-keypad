@@ -2,7 +2,7 @@
 # tile's entity: it unlocks a lock, runs a script or a scene, presses a button. Every field is explained in the plugins
 # repository's docs/MANIFEST.md.
 id: code_lock
-version: 0.3.0
+version: 0.3.1
 api: "0.15"
 icon: lock
 maintainer: mifricke

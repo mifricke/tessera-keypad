@@ -174,9 +174,11 @@ class KeysCard : public tessera::Card {
     // Short glass gives up the space between the keys before a key gets smaller than a finger.
     if (4 * least + 3 * g > keys_h) g = std::max(2, (keys_h - 4 * least) / 3);
     if (4 * kh + 3 * g > keys_h) kh = std::max(least, (keys_h - 3 * g) / 4);
+    // Glass too short even for a finger's keys (the CYD) gets smaller keys rather than keys off the glass.
+    kh = std::max(1, std::min(kh, (keys_h - 3 * g) / 4));
     int kw = kh * 3 / 2;
-    kw = std::min(kw, ((beside_ ? w * 64 / 100 : w) - 2 * g) / 3);
-    kw = std::max(kw, least);
+    const int third = ((beside_ ? w * 64 / 100 : w) - 2 * g) / 3;
+    kw = std::min(std::max(std::min(kw, third), least), third);
     const int pad_w = 3 * kw + 2 * g, pad_h = 4 * kh + 3 * g;
     const int info_w = beside_ ? std::min(w - pad_w - 2 * g, pad_w) : w;
     const int pair_x = beside_ ? x + (w - (info_w + 2 * g + pad_w)) / 2 : x;

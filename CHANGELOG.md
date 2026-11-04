@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+- On the smallest screens (the 2.8-inch CYD) the keypad's keys fit the glass: before, the lowest row was cut off.
+
 ## 0.3.0
 - The right code switches a light, a switch or an input boolean over, whatever it is now. Before, it only turned them
   on, so a light that was already on did nothing.
