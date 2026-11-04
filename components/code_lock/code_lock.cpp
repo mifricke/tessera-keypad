@@ -298,6 +298,11 @@ class KeysCard : public tessera::Card {
     paint();
   }
 
+  // A keypad: on a core with plugin API 0.25 the same key tapped twice quickly counts twice, as on Tessera's own code
+  // pad. Written without `override`, so the plugin builds on an older core as well, where it is a plain function
+  // nobody calls and the card keeps the older 600 ms between two taps of one key.
+  bool keypad() const { return true; }
+
   // The tile's data again: a helper's new code counts at once, also while the keypad is open.
   void on_state(JsonObjectConst data) override {
     if (lock_.from_entity && !data["entities"].isNull()) code_from_data(data, lock_.code, sizeof(lock_.code));

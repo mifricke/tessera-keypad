@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+- Ready for a coming Tessera that lets a keypad take the same key twice in a row: there, "1 1 2 3" typed quickly
+  counts all four digits. On today's Tessera nothing changes: the same key tapped twice within about half a second
+  still counts once.
+
 ## 0.6.0
 - New option **Code only to open**, off by default. Turned on, a tap locks a lock, closes a cover or switches a light,
   switch or input boolean off without the code, and the tile says so. Unlocking, opening and switching on still take
