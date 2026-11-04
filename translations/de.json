@@ -20,9 +20,9 @@
     "unavailable": "Nicht verfügbar"
   },
   "app": {
-    "name": "Codeschloss",
+    "name": "Keypad",
     "summary": "Ein Tastenfeld auf dem Display: Der richtige Code entriegelt ein Schloss, öffnet ein Tor oder schaltet ein Licht, ein Skript oder eine Szene.",
-    "tile_name": "Codeschloss",
+    "tile_name": "Keypad",
     "tile_example": "Code eingeben zum Entriegeln",
     "card_name": "Tastenfeld",
     "target": "Entität",

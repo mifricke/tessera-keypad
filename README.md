@@ -1,4 +1,4 @@
-# Code lock
+# Keypad
 
 A keypad on your Tessera screen. Type the right code and the screen runs an action in Home Assistant: it unlocks a
 lock, opens a garage door, switches a light or a switch, runs a script or a scene, or presses a button.
@@ -10,7 +10,7 @@ lock, opens a garage door, switches a light or a switch, runs a script or a scen
 
 1. In Tessera, open **Plugins**, choose **Add with a link** and paste `https://github.com/mifricke/tessera-keypad`.
 2. Add the plugin to a screen. The screen builds once.
-3. In **Layout**, place the **Code lock** tile from the library's Plugins group.
+3. In **Layout**, place the **Keypad** tile from the library's Plugins group.
 4. In the inspector, search for and choose the **Entity** the code switches, and fill in the **Code** (4 to 8 digits).
    The list offers only entities the code can switch.
 5. Tap the tile on the screen, type the code, and the action runs.

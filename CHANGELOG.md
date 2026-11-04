@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- The plugin and its tile are called Keypad now, in every language.
+
 ## 0.3.1
 - On the smallest screens (the 2.8-inch CYD) the keypad's keys fit the glass: before, the lowest row was cut off.
 

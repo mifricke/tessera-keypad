@@ -1,8 +1,8 @@
-# Code lock: a keypad on the screen. When the right code is typed, the screen runs an action in Home Assistant on the
+# Keypad: a keypad on the screen. When the right code is typed, the screen runs an action in Home Assistant on the
 # tile's entity: it unlocks a lock, runs a script or a scene, presses a button. Every field is explained in the plugins
 # repository's docs/MANIFEST.md.
 id: code_lock
-version: 0.3.1
+version: 0.3.2
 api: "0.15"
 icon: lock
 maintainer: mifricke

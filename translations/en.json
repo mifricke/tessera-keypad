@@ -20,9 +20,9 @@
     "unavailable": "Unavailable"
   },
   "app": {
-    "name": "Code lock",
+    "name": "Keypad",
     "summary": "A keypad on the screen: the right code unlocks a lock, opens a cover or switches a light, a script or a scene.",
-    "tile_name": "Code lock",
+    "tile_name": "Keypad",
     "tile_example": "Enter the code to unlock",
     "card_name": "Keypad",
     "target": "Entity",
