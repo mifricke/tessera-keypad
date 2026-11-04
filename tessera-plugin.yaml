@@ -2,7 +2,7 @@
 # tile's entity: it unlocks a lock, runs a script or a scene, presses a button. Every field is explained in the plugins
 # repository's docs/MANIFEST.md.
 id: code_lock
-version: 0.2.0
+version: 0.3.0
 api: "0.15"
 icon: lock
 maintainer: mifricke
@@ -16,7 +16,7 @@ flash_kb: 12
 
 permissions:
   # The one action of the chosen entity that the right code runs, by its domain.
-  home_assistant_actions: [lock.unlock, cover.open_cover, switch.turn_on, input_boolean.turn_on, light.turn_on,
+  home_assistant_actions: [lock.unlock, cover.open_cover, switch.toggle, input_boolean.toggle, light.toggle,
                            script.turn_on, scene.turn_on, button.press]
 
 tiles:

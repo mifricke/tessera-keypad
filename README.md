@@ -1,7 +1,7 @@
 # Code lock
 
 A keypad on your Tessera screen. Type the right code and the screen runs an action in Home Assistant: it unlocks a
-lock, opens a garage door, turns on a switch or a light, runs a script or a scene, or presses a button.
+lock, opens a garage door, switches a light or a switch, runs a script or a scene, or presses a button.
 
 > The code is checked on the screen, so it is stored in the screen's layout and on the screen itself. Use it for
 > convenience, such as letting family in, and not as the only protection of a door.
@@ -21,9 +21,9 @@ lock, opens a garage door, turns on a switch or a light, runs a script or a scen
 |---|---|
 | Lock | `lock.unlock` |
 | Cover (a garage door, a gate) | `cover.open_cover` |
-| Switch | `switch.turn_on` |
-| Input boolean | `input_boolean.turn_on` |
-| Light | `light.turn_on` |
+| Switch | `switch.toggle` |
+| Input boolean | `input_boolean.toggle` |
+| Light | `light.toggle` |
 | Script | `script.turn_on` |
 | Scene | `scene.turn_on` |
 | Button | `button.press` |
@@ -41,5 +41,7 @@ that script on the tile.
 ## Good to know
 
 - The screen must be allowed to perform actions in Home Assistant (Tessera sets this up when it adds a screen).
-- The keypad closes by itself a moment after the right code.
+- A light, a switch and an input boolean are switched over: off goes on, on goes off.
+- The keypad closes by itself a moment after the right code. When the code could not be sent, it says so and stays
+  open.
 - The X key clears what was typed.

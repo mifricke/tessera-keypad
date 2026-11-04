@@ -1,6 +1,8 @@
 #include "code_lock.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/log.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -11,14 +13,14 @@ using tessera::Tone;
 namespace ui = tessera::ui;
 
 static constexpr uint32_t ICON_LOCK = 0xF033E, ICON_LOCK_OPEN = 0xF033F, ICON_CHECK = 0xF012C, ICON_CLOSE = 0xF0156;
-static constexpr size_t MAX_DIGITS = 16;   // what the keypad takes; the dots show at most DOTS
-static constexpr int DOTS = 8;
+static constexpr size_t MAX_DIGITS = 16;   // what the keypad takes
 
-// The action the right code runs, by the entity's domain (named in the manifest's home_assistant_actions).
+// The action the right code runs, by the entity's domain (named in the manifest's home_assistant_actions): a light, a
+// switch and an input boolean are switched over, whatever they are now; a lock unlocks, a cover opens.
 static const char *service_for(const char *entity) {
   static const struct { const char *domain, *service; } MAP[] = {
-      {"lock.", "lock.unlock"},     {"cover.", "cover.open_cover"}, {"switch.", "switch.turn_on"},
-      {"input_boolean.", "input_boolean.turn_on"}, {"light.", "light.turn_on"}, {"script.", "script.turn_on"},
+      {"lock.", "lock.unlock"},     {"cover.", "cover.open_cover"}, {"switch.", "switch.toggle"},
+      {"input_boolean.", "input_boolean.toggle"}, {"light.", "light.toggle"}, {"script.", "script.turn_on"},
       {"scene.", "scene.turn_on"},   {"button.", "button.press"},
   };
   for (const auto &m : MAP)
@@ -26,14 +28,16 @@ static const char *service_for(const char *entity) {
   return nullptr;
 }
 
-// The largest of the screen's fonts whose line fits `room` pixels, for words (`digits` false) or for digits alone.
-static Font fitting(int room, bool digits) {
-  const Font faces[] = {Font::DIGITS, Font::VALUE, Font::HEADLINE, Font::TITLE, Font::BODY_LARGE, Font::BODY};
-  for (Font f : faces) {
-    if (f == Font::DIGITS && !digits) continue;
-    if (ui::line_height(f) <= room) return f;
-  }
-  return Font::BODY;
+// A text option as text: the code as the inspector keeps it, also when it came as a number.
+static void option_text(JsonVariantConst value, char *out, size_t size) {
+  out[0] = 0;
+  if (value.is<const char *>()) std::strncpy(out, value.as<const char *>(), size - 1);
+  else if (value.is<long>()) std::snprintf(out, size, "%ld", value.as<long>());
+  out[size - 1] = 0;
+  // Only digits count: a space the person typed around the code is left out.
+  size_t n = 0;
+  for (size_t i = 0; out[i]; ++i) if (out[i] >= '0' && out[i] <= '9') out[n++] = out[i];
+  out[n] = 0;
 }
 
 CodeLock::Tries &CodeLock::tries(const char *entity) {
@@ -56,7 +60,7 @@ class KeypadTile : public tessera::Tile {
     height_ = c.height;
     tile_ = c.tile;
     std::strncpy(lock_.entity, c.options["target"] | "", sizeof(lock_.entity) - 1);
-    std::strncpy(lock_.code, c.options["code"] | "", sizeof(lock_.code) - 1);
+    option_text(c.options["code"], lock_.code, sizeof(lock_.code));
     lock_.attempts = std::max(1, c.options["attempts"] | 3);
     lock_.wait_s = std::max(1, c.options["wait"] | 30);
     std::strncpy(name_, c.name ? c.name : "", sizeof(name_) - 1);
@@ -146,60 +150,83 @@ class KeypadTile : public tessera::Tile {
   lv_obj_t *icon_{}, *name_label_{}, *line_{};
 };
 
-// ---- The keypad: dots for what was typed, a line that says how it went, and twelve keys ----
+// ---- The keypad: Tessera's own code pad (the alarm panel's and the lock's) for a plugin ----
+// The dots and a line of words above twelve round keys (1-9, clear, 0, OK), or beside them on wide glass, laid out as
+// the core's keypad_layout lays its own: every key a finger's size at least, a key a finger and a half wide, the dots
+// as a PIN field shows them (four at least, so they never tell the code's length).
 class KeysCard : public tessera::Card {
  public:
   explicit KeysCard(CodeLock *plugin) : plugin_(plugin) {}
 
   void open(const tessera::CardContext &c) override {
     lock_ = plugin_->chosen;
-    const int pad = ui::px(12), gap = ui::px(8);
-    const int msg_h = ui::line_height(Font::BODY_LARGE);
-    dot_ = std::max(ui::px(10), ui::mm(2));
-    const int head = dot_ + ui::px(10) + msg_h + ui::px(14);
-    // Twelve keys in four rows of three: as large as the room allows, never taller than wide, a finger's size at least
-    // where the glass has it.
-    key_w_ = (c.width - 2 * pad - 2 * gap) / 3;
-    key_h_ = (c.height - 2 * pad - head - 3 * gap) / 4;
-    key_h_ = std::min(key_h_, key_w_);
-    key_w_ = std::min(key_w_, key_h_ * 16 / 10);
-    gap_ = gap;
-    const int grid_w = 3 * key_w_ + 2 * gap, grid_h = 4 * key_h_ + 3 * gap;
-    x0_ = (c.width - grid_w) / 2;
-    const int top = std::max(pad, (c.height - head - grid_h) / 2);
-    y0_ = top + head;
+    const bool large = ui::large();
+    const int side = ui::px(large ? 20 : 12);
+    int g = ui::px(large ? 12 : 6);
+    text_h_ = ui::line_height(Font::BODY_LARGE);
+    const int least = std::max(ui::mm(8), text_h_ + ui::px(8));
+    int kh = std::max(ui::px(large ? 64 : 42), least);
+    dot_max_ = ui::px(large ? 16 : 10);
+    const int x = side, top = side, w = c.width - 2 * side, h = c.height - 2 * side;
+    beside_ = w * 10 >= h * 13;
+    const int info_h = dot_max_ + g + text_h_;
+    const int keys_h = beside_ ? h : h - info_h - 2 * g;
+    // Short glass gives up the space between the keys before a key gets smaller than a finger.
+    if (4 * least + 3 * g > keys_h) g = std::max(2, (keys_h - 4 * least) / 3);
+    if (4 * kh + 3 * g > keys_h) kh = std::max(least, (keys_h - 3 * g) / 4);
+    int kw = kh * 3 / 2;
+    kw = std::min(kw, ((beside_ ? w * 64 / 100 : w) - 2 * g) / 3);
+    kw = std::max(kw, least);
+    const int pad_w = 3 * kw + 2 * g, pad_h = 4 * kh + 3 * g;
+    const int info_w = beside_ ? std::min(w - pad_w - 2 * g, pad_w) : w;
+    const int pair_x = beside_ ? x + (w - (info_w + 2 * g + pad_w)) / 2 : x;
+    const int px0 = beside_ ? pair_x + info_w + 2 * g : x + (w - pad_w) / 2;
+    const int py0 = beside_ ? top + (h - pad_h) / 2 : top + (h - (info_h + 2 * g + pad_h)) / 2 + info_h + 2 * g;
+    key_w_ = kw;
+    key_h_ = kh;
+    gap_ = g;
+    x0_ = px0;
+    y0_ = py0;
+    info_x_ = beside_ ? pair_x : x;
+    info_w_ = info_w;
+    const int info_y = beside_ ? top : py0 - 2 * g - info_h, info_hh = beside_ ? h : info_h + g;
+    const int lines = beside_ ? 3 : 1;
+    const int block = dot_max_ + g + lines * text_h_;
+    dots_y_ = info_y + (info_hh - block) / 2;
 
-    for (int i = 0; i < DOTS; ++i) {
-      dots_[i] = ui::block(c.parent, theme::TRACK);
-      lv_obj_set_size(dots_[i], dot_, dot_);
-      lv_obj_set_style_radius(dots_[i], LV_RADIUS_CIRCLE, 0);
+    for (auto &d : dots_) {
+      d = ui::block(c.parent, theme::CARD);
+      lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
+      lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN);
     }
-    dots_y_ = top;
-    width_ = c.width;
-    msg_ = ui::label(c.parent, Font::BODY_LARGE, theme::MUTED);
-    lv_obj_set_width(msg_, c.width - 2 * pad);
-    lv_obj_set_pos(msg_, pad, top + dot_ + ui::px(10));
-    lv_obj_set_style_text_align(msg_, LV_TEXT_ALIGN_CENTER, 0);
+    line_ = lines > 1 ? ui::text(c.parent, Font::BODY_LARGE, theme::MUTED) : ui::label(c.parent, Font::BODY_LARGE, theme::MUTED);
+    lv_obj_set_size(line_, info_w, lines * text_h_);
+    lv_obj_set_pos(line_, info_x_, dots_y_ + dot_max_ + g);
+    lv_obj_set_style_text_align(line_, LV_TEXT_ALIGN_CENTER, 0);
 
-    const Font digit = fitting(key_h_ * 7 / 10, true);
-    const Font icon = ui::line_height(Font::ICON) <= key_h_ * 8 / 10 ? Font::ICON : Font::ICON_SMALL;
+    // The digits in the largest of the screen's fonts that sits well in a key; the clear and OK keys their icons.
+    Font digit = Font::BODY_LARGE;
+    for (Font f : {Font::VALUE, Font::HEADLINE, Font::TITLE, Font::BODY_LARGE}) {
+      digit = f;
+      if (ui::line_height(f) <= kh * 6 / 10) break;
+    }
+    const Font icon = ui::line_height(Font::ICON) <= kh - ui::px(10) ? Font::ICON : Font::ICON_SMALL;
     for (int i = 0; i < 12; ++i) {
-      const int row = i / 3, col = i % 3;
-      lv_obj_t *k = ui::block(c.parent, i == 11 ? theme::ACCENT : theme::RAISED);
-      lv_obj_remove_flag(k, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_remove_flag(k, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_t *k = ui::block(c.parent, i == OK ? theme::ACCENT : theme::CARD);
       lv_obj_set_style_pad_all(k, 0, 0);
-      lv_obj_set_size(k, key_w_, key_h_);
-      lv_obj_set_pos(k, x0_ + col * (key_w_ + gap), y0_ + row * (key_h_ + gap));
-      const bool is_icon = i == 9 || i == 11;
-      const Font face = is_icon ? icon : digit;
-      lv_obj_t *l = ui::label(k, face, i == 11 ? theme::ON_ACCENT : theme::INK);
-      lv_obj_set_width(l, key_w_);
+      lv_obj_set_size(k, kw, kh);
+      lv_obj_set_pos(k, px0 + (i % 3) * (kw + g), py0 + (i / 3) * (kh + g));
+      lv_obj_set_style_radius(k, kh / 2, 0);
+      lv_obj_set_style_border_width(k, i == OK ? 0 : 1, 0);
+      lv_obj_set_style_border_color(k, ui::color(theme::LINE), 0);
+      const Font face = i == OK || i == CLEAR ? icon : digit;
+      lv_obj_t *l = ui::label(k, face, i == OK ? theme::ON_ACCENT : theme::INK);
+      lv_obj_set_width(l, kw);
       lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
-      lv_obj_set_pos(l, 0, (key_h_ - ui::line_height(face)) / 2);
-      if (i == 9) ui::set_text(l, ui::icon(ICON_CLOSE));
-      else if (i == 11) ui::set_text(l, ui::icon(ICON_CHECK));
-      else ui::set_text(l, std::string(1, i == 10 ? '0' : static_cast<char>('1' + i)));
+      lv_obj_set_pos(l, 0, (kh - ui::line_height(face)) / 2);
+      if (i == CLEAR) ui::set_text(l, ui::icon(ICON_CLOSE));
+      else if (i == OK) ui::set_text(l, ui::icon(ICON_CHECK));
+      else ui::set_text(l, std::string(1, i == ZERO ? '0' : static_cast<char>('1' + i)));
       keys_[i] = k;
       labels_[i] = l;
     }
@@ -208,16 +235,16 @@ class KeysCard : public tessera::Card {
 
   void on_theme() override {
     for (int i = 0; i < 12; ++i) {
-      ui::set_fill(keys_[i], Tone::NORMAL, i == 11 ? theme::ACCENT : theme::RAISED);
-      ui::set_color(labels_[i], i == 11 ? theme::ON_ACCENT : theme::INK);
+      ui::set_fill(keys_[i], Tone::NORMAL, i == OK ? theme::ACCENT : theme::CARD);
+      lv_obj_set_style_border_color(keys_[i], ui::color(theme::LINE), 0);
+      ui::set_color(labels_[i], i == OK ? theme::ON_ACCENT : theme::INK);
     }
     paint();
   }
 
   void on_tick(uint32_t) override {
-    const uint32_t now = esphome::millis();
-    // The right code: the card closes a moment after it said so.
-    if (done_ && now - done_at_ >= 1500) {
+    // A code that went out: the card closes a moment after it said so.
+    if (said_ == Said::SENT && esphome::millis() - said_at_ >= 1500) {
       tessera::close_card();
       return;
     }
@@ -225,26 +252,28 @@ class KeysCard : public tessera::Card {
   }
 
   void on_tap() override {
-    if (done_ || blocked()) return;
+    if (said_ == Said::SENT || blocked()) return;
     const tessera::Point p = tessera::tap_point();
     const int key = key_at(p.x, p.y);
     if (key < 0) return;
-    said_ = Said::NOTHING;
-    if (key == 9) {
+    if (key == CLEAR) {
       clear();
-    } else if (key == 11) {
+      said_ = Said::NOTHING;
+    } else if (key == OK) {
       if (typed_len_) submit();
     } else if (typed_len_ < MAX_DIGITS) {
-      typed_[typed_len_++] = key == 10 ? '0' : static_cast<char>('1' + key);
+      if (said_ == Said::WRONG) said_ = Said::NOTHING;
+      typed_[typed_len_++] = key == ZERO ? '0' : static_cast<char>('1' + key);
       typed_[typed_len_] = 0;
-      // A code of known length is checked as its last digit comes, without OK.
+      // The code is checked as its last digit comes, without OK.
       if (lock_.code[0] && typed_len_ == std::strlen(lock_.code)) submit();
     }
     paint();
   }
 
  private:
-  enum class Said : uint8_t { NOTHING, WRONG, RIGHT, FAILED };
+  enum class Said : uint8_t { NOTHING, WRONG, SENT, FAILED };
+  static constexpr int CLEAR = 9, ZERO = 10, OK = 11;
 
   void clear() {
     std::memset(typed_, 0, sizeof(typed_));
@@ -277,10 +306,12 @@ class KeysCard : public tessera::Card {
 
   void submit() {
     auto &t = plugin_->tries(lock_.entity);
+    said_at_ = esphome::millis();
     if (!lock_.code[0]) return;
     if (!matches()) {
       clear();
       said_ = Said::WRONG;
+      ESP_LOGI(TAG, "Wrong code for %s", lock_.entity);
       if (++t.wrong >= lock_.attempts) {
         t.wrong = 0;
         t.blocked_until = esphome::millis() + static_cast<uint32_t>(lock_.wait_s) * 1000u;
@@ -289,67 +320,74 @@ class KeysCard : public tessera::Card {
       return;
     }
     t.wrong = 0;
-    const char *service = service_for(lock_.entity);
-    bool sent = false;
-    if (service) sent = tessera::action(service, lock_.entity);
     clear();
-    said_ = sent ? Said::RIGHT : Said::FAILED;
-    if (sent) {
-      done_ = true;
-      done_at_ = esphome::millis();
-    }
+    const char *service = service_for(lock_.entity);
+    const bool sent = service && tessera::action(service, lock_.entity);
+    ESP_LOGI(TAG, "Right code: %s on %s %s", service ? service : "(no action)", lock_.entity, sent ? "sent" : "NOT sent");
+    said_ = sent ? Said::SENT : Said::FAILED;
   }
 
   void paint() {
-    // The dots: as many as the code has, filled as far as it is typed; without a known length one per digit typed.
-    const size_t known = std::strlen(lock_.code);
-    const int shown = std::min<int>(DOTS, known ? static_cast<int>(known) : static_cast<int>(typed_len_));
-    const int filled = std::min<int>(shown, static_cast<int>(typed_len_));
-    const int step = dot_ + ui::px(10);
-    const int left = (width_ - (shown * step - ui::px(10))) / 2;
-    const Tone tone = said_ == Said::WRONG ? Tone::ALERT : said_ == Said::RIGHT ? Tone::GOOD : Tone::ACCENT;
-    for (int i = 0; i < DOTS; ++i) {
+    const uint32_t now = esphome::millis();
+    const bool held = blocked();
+    // The dots: one filled per digit typed, and empty ones up to four, like a PIN field; smaller when many must fit.
+    const int shown = std::max<int>(4, static_cast<int>(typed_len_));
+    int dot = dot_max_;
+    while (dot > 4 && shown * dot + (shown - 1) * (dot * 3 / 5) > info_w_) --dot;
+    const int dgap = dot * 3 / 5, row = shown * dot + (shown - 1) * dgap;
+    const int left = info_x_ + (info_w_ - row) / 2, y = dots_y_ + (dot_max_ - dot) / 2;
+    const bool bad = said_ == Said::WRONG && now - said_at_ < 4000;
+    for (int i = 0; i < static_cast<int>(MAX_DIGITS); ++i) {
+      lv_obj_t *d = dots_[i];
       if (i >= shown) {
-        lv_obj_add_flag(dots_[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN);
         continue;
       }
-      lv_obj_remove_flag(dots_[i], LV_OBJ_FLAG_HIDDEN);
-      lv_obj_set_pos(dots_[i], left + i * step, dots_y_);
-      ui::set_fill(dots_[i], i < filled ? tone : Tone::NORMAL, theme::TRACK);
+      lv_obj_remove_flag(d, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_size(d, dot, dot);
+      lv_obj_set_pos(d, left + i * (dot + dgap), y);
+      const bool filled = i < static_cast<int>(typed_len_) || (bad && i < 4);
+      if (filled) ui::set_fill(d, bad ? Tone::ALERT : Tone::NORMAL, theme::INK);
+      else ui::set_fill(d, Tone::NORMAL, theme::CARD);
+      lv_obj_set_style_border_width(d, filled ? 0 : std::max(1, dot / 7), 0);
+      lv_obj_set_style_border_color(d, ui::color(theme::TICK), 0);
     }
-    // The line under the dots: the wait after wrong tries, how it went, or what to do.
-    std::string text;
-    Tone t = Tone::NORMAL;
-    if (blocked()) {
+    // The line under the dots: the wait after wrong tries, how it went for a few seconds, or what to do.
+    std::string text = plugin_->text("enter");
+    Tone tone = Tone::NORMAL;
+    if (held) {
       const auto &tr = plugin_->tries(lock_.entity);
-      const long left_s = (static_cast<int32_t>(tr.blocked_until - esphome::millis()) + 999) / 1000;
-      text = tessera::format(plugin_->text("blocked"), left_s);
-      t = Tone::BUSY;
-    } else if (said_ == Said::WRONG) {
-      text = plugin_->text("wrong");
-      t = Tone::ALERT;
-    } else if (said_ == Said::RIGHT) {
+      text = tessera::format(plugin_->text("blocked"), (static_cast<int32_t>(tr.blocked_until - now) + 999) / 1000);
+      tone = Tone::BUSY;
+    } else if (said_ == Said::SENT) {
       text = plugin_->text("right");
-      t = Tone::GOOD;
-    } else if (said_ == Said::FAILED) {
+      tone = Tone::GOOD;
+    } else if (said_ == Said::FAILED && now - said_at_ < 4000) {
       text = plugin_->text("failed");
-      t = Tone::BUSY;
-    } else if (!typed_len_) {
-      text = plugin_->text("enter");
+      tone = Tone::ALERT;
+    } else if (bad) {
+      text = plugin_->text("wrong");
+      tone = Tone::ALERT;
     }
-    ui::set_text(msg_, text);
-    ui::set_tone(msg_, t, theme::MUTED);
+    ui::set_text(line_, text);
+    ui::set_tone(line_, tone, theme::MUTED);
+    // Keys that do nothing now stand back: all of them while the keypad waits, clear and OK without a digit.
+    for (int i = 0; i < 12; ++i) {
+      const bool off = held || said_ == Said::SENT || ((i == CLEAR || i == OK) && !typed_len_);
+      lv_obj_set_style_opa(keys_[i], off ? LV_OPA_40 : LV_OPA_COVER, 0);
+    }
   }
 
+  static constexpr const char *TAG = "code_lock";
   CodeLock *plugin_;
   Lock lock_;
   char typed_[MAX_DIGITS + 1] = "";   // what was typed while the card is open, gone with the card
   size_t typed_len_ = 0;
   Said said_ = Said::NOTHING;
-  bool done_ = false;
-  uint32_t done_at_ = 0;
-  int key_w_ = 0, key_h_ = 0, gap_ = 0, x0_ = 0, y0_ = 0, dot_ = 0, dots_y_ = 0, width_ = 0;
-  lv_obj_t *keys_[12]{}, *labels_[12]{}, *dots_[DOTS]{}, *msg_{};
+  uint32_t said_at_ = 0;
+  bool beside_ = false;
+  int key_w_ = 0, key_h_ = 0, gap_ = 0, x0_ = 0, y0_ = 0, dot_max_ = 0, dots_y_ = 0, info_x_ = 0, info_w_ = 0, text_h_ = 0;
+  lv_obj_t *keys_[12]{}, *labels_[12]{}, *dots_[MAX_DIGITS]{}, *line_{};
 };
 
 void CodeLock::setup() {
