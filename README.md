@@ -66,8 +66,6 @@ checks the code, so it also reaches the screen.
 ## Tried on
 
 - On a real screen: the Guition 4848S040 (4-inch, 480 x 480), with a light switched by the right code.
-- On the plugin bench (the real firmware, built for a computer): the 2.8-inch CYD, the Guition 4848S040, a 4.3-inch
-  Waveshare standing up and a 10.1-inch Guition JC8012P4A1, light and dark, at every size the tile offers there.
 
 ## Good to know
 
